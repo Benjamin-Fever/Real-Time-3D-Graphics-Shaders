@@ -78,7 +78,6 @@ void Application::render() {
 	if (m_show_axis) drawAxis(view, proj);
 	glPolygonMode(GL_FRONT_AND_BACK, (m_showWireframe) ? GL_LINE : GL_FILL);
 
-
 	// draw the model
 	m_model.draw(view, proj);
 }
@@ -108,16 +107,60 @@ void Application::renderGUI() {
 	
 	ImGui::Separator();
 
-	// example of how to use input boxes
-	static float exampleInput;
-	if (ImGui::InputFloat("example input", &exampleInput)) {
-		cout << "example input changed to " << exampleInput << endl;
+
+	ImGui::Text("Geometry Settings");
+	if (ImGui::Combo("Mode", &geometryMode, "Core\0Complection\0Challenge")){
+		drawGeometry();
+	}
+	if (ImGui::SliderInt("Subdivide Count", &subdivide, 1, 100)) {
+		drawGeometry();
+	}
+	if (ImGui::SliderInt("Radius", &radius, 1, 50)) {
+		drawGeometry();
 	}
 
 	// finish creating window
 	ImGui::End();
 }
 
+void Application::drawGeometry(){
+	gl_mesh mesh;
+	if (geometryMode == 0){
+		// Sphere latlong
+		sphereLatlong();
+	}
+	else if (geometryMode == 1){
+		// Cube to Sphere
+	}
+	else if (geometryMode == 2){
+		// Torus latlong
+	}
+	m_model.mesh = mesh;
+}
+
+void Application::sphereLatlong(){
+	mesh_builder mb;
+	for (int lon = 0; lon < 180; lon+= 180 / subdivide){
+		for (int lat = 0; lon < 90; lon+= 90 / subdivide){
+			int x = radius * cos(lon) * sin(lat);
+			int y = radius * sin(lon) * cos(lat);
+			int z = radius * cos(lat);
+			mesh_vertex mv;
+			mv.pos = {x,y,z};
+			mb.push_vertex(mv);
+		}
+	}
+	// TODO: Build mesh -- Error when mb.build???
+	//m_model.mesh = mb.build();
+}
+
+gl_mesh sphereFromCube(){
+	return {};
+}
+
+gl_mesh torusLatlong(){
+	return {};
+}
 
 void Application::cursorPosCallback(double xpos, double ypos) {
 	if (m_leftMouseDown) {

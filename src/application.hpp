@@ -34,8 +34,8 @@ private:
 	GLFWwindow *m_window;
 
 	// oribital camera
-	float m_pitch = .86;
-	float m_yaw = -.86;
+	float m_pitch = .86f;
+	float m_yaw = -.86f;
 	float m_distance = 20;
 
 	// last input
@@ -49,6 +49,9 @@ private:
 
 	// geometry
 	basic_model m_model;
+	int subdivide = 10;
+	int geometryMode = 0;
+	int radius = 10;
 
 public:
 	// setup
@@ -68,4 +71,8 @@ public:
 	void scrollCallback(double xoffset, double yoffset);
 	void keyCallback(int key, int scancode, int action, int mods);
 	void charCallback(unsigned int c);
+
+	// geometry
+	void drawGeometry();
+	void sphereLatlong();
 };

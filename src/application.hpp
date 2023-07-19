@@ -10,6 +10,7 @@
 #include "cgra/cgra_mesh.hpp"
 #include "skeleton_model.hpp"
 
+#define PI 3.14159265358979323846264338327950288419716939937510
 
 // Basic model that holds the shader, mesh and transform for drawing.
 // Can be copied and modified for adding in extra information for drawing
@@ -49,9 +50,9 @@ private:
 
 	// geometry
 	basic_model m_model;
-	int subdivide = 10;
+	int subdivide = 20;
 	int geometryMode = 0;
-	int radius = 10;
+	int radius = 5;
 
 public:
 	// setup
@@ -75,4 +76,7 @@ public:
 	// geometry
 	void drawGeometry();
 	void sphereLatlong();
+	void sphereFromCube();
+
+	double map(double value, double inMin, double inMax, double outMin, double outMax);
 };

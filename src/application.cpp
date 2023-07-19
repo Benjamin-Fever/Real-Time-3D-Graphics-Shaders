@@ -42,13 +42,12 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	GLuint shader = sb.build();
 
 	m_model.shader = shader;
-	m_model.mesh = load_wavefront_data(CGRA_SRCDIR + std::string("/res//assets//teapot.obj")).build();
-	m_model.color = vec3(1, 0, 0);
+	sphereLatlong();
+	m_model.color = vec3(0.4, 0.7, 0);
 }
 
 
 void Application::render() {
-	
 	// retrieve the window hieght
 	int width, height;
 	glfwGetFramebufferSize(m_window, &width, &height); 
@@ -87,7 +86,7 @@ void Application::renderGUI() {
 
 	// setup window
 	ImGui::SetNextWindowPos(ImVec2(5, 5), ImGuiSetCond_Once);
-	ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiSetCond_Once);
+	ImGui::SetNextWindowSize(ImVec2(340, 300), ImGuiSetCond_Once);
 	ImGui::Begin("Options", 0);
 
 	// display current camera parameters
@@ -124,42 +123,72 @@ void Application::renderGUI() {
 }
 
 void Application::drawGeometry(){
-	gl_mesh mesh;
 	if (geometryMode == 0){
 		// Sphere latlong
 		sphereLatlong();
 	}
 	else if (geometryMode == 1){
 		// Cube to Sphere
+		sphereFromCube();
 	}
 	else if (geometryMode == 2){
 		// Torus latlong
 	}
-	m_model.mesh = mesh;
 }
 
 void Application::sphereLatlong(){
 	mesh_builder mb;
-	for (int lon = 0; lon < 180; lon+= 180 / subdivide){
-		for (int lat = 0; lon < 90; lon+= 90 / subdivide){
-			int x = radius * cos(lon) * sin(lat);
-			int y = radius * sin(lon) * cos(lat);
-			int z = radius * cos(lat);
-			mesh_vertex mv;
-			mv.pos = {x,y,z};
-			mb.push_vertex(mv);
+	
+	// Generate Vertex's
+	for (int lon = 0; lon < subdivide + 1; lon ++){
+		double phi = map(lon, 0, subdivide, 0, PI);
+		for (int lat =0; lat < subdivide + 1; lat ++){
+			double theta = map(lat, 0, subdivide, 0, 2 * PI);
+			// Calculate Positions
+			double x = radius * cos(theta) * sin(phi);
+			double z = radius * sin(theta) * sin(phi);
+			double y = radius * cos(phi);
+
+			// Calculate Normals
+			double nx = x / radius;
+			double ny = y / radius;
+			double nz = z / radius;
+
+			// Calculate UV's
+			double uv1 = 0;
+			double uv2 = 0;
+
+			mb.push_vertex({{x,y,z},{nx, ny, nz},{uv1,uv2}});
 		}
 	}
-	// TODO: Build mesh -- Error when mb.build???
-	//m_model.mesh = mb.build();
+
+	// Generate Indicies
+	for (int lon = 0; lon < subdivide; lon ++){
+		for (int lat =0; lat < subdivide; lat++){
+			int k1 = lat * (subdivide + 1) + lon;
+			int k2 = k1  +  subdivide + 1;
+
+			// Triangle 1
+			mb.push_index(k1);
+			mb.push_index(k2);
+			mb.push_index(k1 + 1);
+
+			// Triangle 2
+			mb.push_index(k2);
+			mb.push_index(k2 + 1);
+			mb.push_index(k1 + 1);
+		}
+	}
+
+	m_model.mesh = mb.build();
 }
 
-gl_mesh sphereFromCube(){
-	return {};
+void Application::sphereFromCube(){
+
 }
 
-gl_mesh torusLatlong(){
-	return {};
+double Application::map(double value, double inMin, double inMax, double outMin, double outMax) {
+    return ((value - inMin) / (inMax - inMin)) * (outMax - outMin) + outMin;
 }
 
 void Application::cursorPosCallback(double xpos, double ypos) {

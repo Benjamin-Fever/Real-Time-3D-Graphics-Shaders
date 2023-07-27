@@ -17,14 +17,13 @@
 // including textures for texture mapping etc.
 struct basic_model {
 	GLuint shader = 0;
-	cgra::gl_mesh mesh;
+	std::vector<cgra::gl_mesh> meshs;
 	glm::vec3 color{0.7};
 	glm::mat4 modelTransform{1.0};
 	GLuint texture;
 
 	void draw(const glm::mat4 &view, const glm::mat4 proj);
 };
-
 
 // Main application class
 //
@@ -50,7 +49,7 @@ private:
 
 	// geometry
 	basic_model m_model;
-	int subdivide = 20;
+	int subdiv = 20;
 	int geometryMode = 0;
 	int radius = 5;
 
@@ -77,6 +76,7 @@ public:
 	void drawGeometry();
 	void sphereLatlong();
 	void sphereFromCube();
+	void generateCubeFace(cgra::mesh_builder *mb, glm::mat3 transformMatrix);
 
 	double map(double value, double inMin, double inMax, double outMin, double outMax);
 };

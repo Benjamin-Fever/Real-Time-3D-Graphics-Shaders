@@ -29,8 +29,9 @@ void basic_model::draw(const glm::mat4 &view, const glm::mat4 proj) {
 	glUniformMatrix4fv(glGetUniformLocation(shader, "uProjectionMatrix"), 1, false, value_ptr(proj));
 	glUniformMatrix4fv(glGetUniformLocation(shader, "uModelViewMatrix"), 1, false, value_ptr(modelview));
 	glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, value_ptr(color));
-
-	mesh.draw(); // draw
+	for (auto &mesh : meshs){
+		mesh.draw(); // draw
+	}
 }
 
 
@@ -111,7 +112,7 @@ void Application::renderGUI() {
 	if (ImGui::Combo("Mode", &geometryMode, "Core\0Complection\0Challenge")){
 		drawGeometry();
 	}
-	if (ImGui::SliderInt("Subdivide Count", &subdivide, 1, 100)) {
+	if (ImGui::SliderInt("subdiv Count", &subdiv, 1, 100)) {
 		drawGeometry();
 	}
 	if (ImGui::SliderInt("Radius", &radius, 1, 50)) {
@@ -140,10 +141,10 @@ void Application::sphereLatlong(){
 	mesh_builder mb;
 	
 	// Generate Vertex's
-	for (int lon = 0; lon < subdivide + 1; lon ++){
-		double phi = map(lon, 0, subdivide, 0, PI);
-		for (int lat =0; lat < subdivide + 1; lat ++){
-			double theta = map(lat, 0, subdivide, 0, 2 * PI);
+	for (int lon = 0; lon < subdiv + 1; lon ++){
+		double phi = map(lon, 0, subdiv, 0, PI);
+		for (int lat =0; lat < subdiv + 1; lat ++){
+			double theta = map(lat, 0, subdiv, 0, 2 * PI);
 			// Calculate Positions
 			double x = radius * cos(theta) * sin(phi);
 			double z = radius * sin(theta) * sin(phi);
@@ -163,10 +164,10 @@ void Application::sphereLatlong(){
 	}
 
 	// Generate Indicies
-	for (int lon = 0; lon < subdivide; lon ++){
-		for (int lat =0; lat < subdivide; lat++){
-			int k1 = lat * (subdivide + 1) + lon;
-			int k2 = k1  +  subdivide + 1;
+	for (int lon = 0; lon < subdiv; lon ++){
+		for (int lat =0; lat < subdiv; lat++){
+			int k1 = lat * (subdiv + 1) + lon;
+			int k2 = k1  +  subdiv + 1;
 
 			// Triangle 1
 			mb.push_index(k1);
@@ -180,11 +181,59 @@ void Application::sphereLatlong(){
 		}
 	}
 
-	m_model.mesh = mb.build();
+	m_model.meshs.clear();
+	m_model.meshs.push_back(mb.build());
 }
 
 void Application::sphereFromCube(){
+	mesh_builder mb;
+	mesh_builder faces[6] = {};
+	glm::mat3 faceMatrix[6] = {
+		glm::mat3(vec3(1,0,-0.5), vec3(0,1,-0.5), vec3(0,0,0.5)),
+		glm::mat3(vec3(1,0,-0.5), vec3(0,1,-0.5), vec3(0,0,-0.5)),
+		glm::mat3(vec3(1,0,-0.5), vec3(0,0,-0.5), vec3(0,1,-0.5)),
+		glm::mat3(vec3(1,0,-0.5), vec3(0,0,0.5), vec3(0,1,-0.5)),
+		glm::mat3(vec3(0,0,-0.5), vec3(0,1,-0.5), vec3(1,0,-0.5)),
+		glm::mat3(vec3(0,0,0.5), vec3(0,1,-0.5), vec3(1,0,-0.5)),
+	};
+	m_model.meshs.clear();
+	for (int i = 0; i < 6; i++){
+		generateCubeFace(faces + i, faceMatrix[i]);
+		m_model.meshs.push_back(faces[i].build());
+	}
+}
 
+void Application::generateCubeFace(mesh_builder *mb, glm::mat3 transformMatrix){
+	float jumpSize = (float)radius / subdiv;
+
+	// Generate vertices
+	for (int y = 0; y < subdiv + 1; y++){
+		for (int x = 0; x < subdiv + 1; x++){
+			mesh_vertex mv;
+			vec3 pos = vec3(x * jumpSize, y * jumpSize, radius);
+			mv.pos = pos * transformMatrix;
+			mv.pos = normalize(mv.pos);
+			mv.pos *= radius;
+			mv.norm = mv.pos;
+			mb->push_vertex(mv);
+			
+		}
+	}
+
+	// Generate indicies
+	for (int y = 0; y < subdiv; y++){
+		for (int x = 0; x < subdiv; x++){
+			int k1 = x + y * (subdiv + 1);
+			int k2 = x + (y + 1) * (subdiv + 1);
+			mb->push_index(k1);
+			mb->push_index(k2);
+			mb->push_index(k2+1);
+
+			mb->push_index(k2+1);
+			mb->push_index(k1);
+			mb->push_index(k1+1);
+		}
+	}
 }
 
 double Application::map(double value, double inMin, double inMax, double outMin, double outMax) {

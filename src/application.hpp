@@ -60,7 +60,11 @@ private:
 	basic_model m_model;
 	int subdiv = 20;
 	int geometryMode = 0;
+	int shaderMode = 0;
 	int radius = 5;
+	int outerRadius = 10;
+	std::string shaderFrag[4] = {"//res//shaders//color_frag.glsl", "//res//shaders//Core//frag.glsl", "//res//shaders//Completion//frag.glsl", "//res//shaders//color_frag.glsl"};
+	std::string shaderVert[4] = {"//res//shaders//color_vert.glsl", "//res//shaders//Core//vert.glsl", "//res//shaders//Completion//vert.glsl", "//res//shaders//color_vert.glsl"};
 
 public:
 	// setup
@@ -86,6 +90,7 @@ public:
 	void sphereLatlong();
 	void sphereFromCube();
 	void generateCubeFace(cgra::mesh_builder *mb, glm::mat3 transformMatrix);
+	void torusLatLong();
 
 	double map(double value, double inMin, double inMax, double outMin, double outMax);
 };

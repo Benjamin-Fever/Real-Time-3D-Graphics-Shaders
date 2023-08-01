@@ -36,6 +36,7 @@ void basic_model::draw(const glm::mat4 &view, const glm::mat4 proj) {
 	glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, value_ptr(color));
 	glUniform1f(glGetUniformLocation(shader, "uRoughness"), roughness);
 	glUniform1f(glGetUniformLocation(shader, "uRefraction"), refraction);
+
 	for (auto &mesh : meshs){
 		mesh.draw(); // draw
 	}
@@ -46,7 +47,7 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	
 	shader_builder sb;
     sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
-	sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//frag.glsl"));
+	sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_frag.glsl"));
 	GLuint shader = sb.build();
 
 	m_model.shader = shader;
@@ -120,12 +121,29 @@ void Application::renderGUI() {
 		subdiv = subdivMin; 
 		drawGeometry();
 	}
-	if (ImGui::Combo("Mode", &geometryMode, "Core\0Complection\0Challenge"))
+	if (ImGui::Combo("Geometry Mode", &geometryMode, "Core\0Complection\0Challenge"))
 		drawGeometry(); 
 	if (ImGui::SliderInt("subdiv Count", &subdiv, subdivMin, 100))
 		drawGeometry();
 	if (ImGui::SliderInt("Radius", &radius, 1, 50))
 		drawGeometry();
+	if (geometryMode == 2)
+		if (ImGui::SliderInt("Outer Radius", &outerRadius, 1, 50))
+			drawGeometry();
+
+	ImGui::Text("Shader Settings");
+	if (ImGui::Combo("Shader Mode", &shaderMode, "Color\0Shader\0Texture\0Shader + Texture")){
+		shader_builder sb;
+		sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + shaderVert[shaderMode]);
+		sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + shaderFrag[shaderMode]);
+		GLuint shader = sb.build();
+
+		m_model.shader = shader;
+	}
+	ImGui::SliderFloat3("Model Color", value_ptr(m_model.color), 0, 1, "%.2f");
+	ImGui::SliderFloat("Roughness", &m_model.roughness, 0, 1, "%.3f");
+	ImGui::SliderFloat("Refraction", &m_model.refraction, 0, 100, "%.3f");
+
 
 	ImGui::Text("Lighting Settings");
     ImGui::SliderFloat3("Light Color", value_ptr(m_model.lightColor), 0, 1, "%.2f");
@@ -133,11 +151,6 @@ void Application::renderGUI() {
     ImGui::SliderFloat("Ambient Strength", &m_model.ambientStrength, 0, 1, "%.3f");
     ImGui::SliderFloat("Diffuse Strength", &m_model.diffuseStrength, 0, 1, "%.3f");
     ImGui::SliderFloat("Specular Strength", &m_model.specularStrength, 0, 1, "%.3f");
-
-	ImGui::Text("Material Settings");
-	ImGui::SliderFloat3("Model Color", value_ptr(m_model.color), 0, 1, "%.2f");
-	ImGui::SliderFloat("Roughness", &m_model.roughness, 0, 1, "%.3f");
-	ImGui::SliderFloat("Refraction", &m_model.refraction, 0, 100, "%.3f");
     
 
 	// finish creating window
@@ -155,6 +168,7 @@ void Application::drawGeometry(){
 	}
 	else if (geometryMode == 2){
 		// Torus latlong
+		torusLatLong();
 	}
 }
 
@@ -177,8 +191,8 @@ void Application::sphereLatlong(){
 			double nz = z / radius;
 
 			// Calculate UV's
-			double uv1 = 0;
-			double uv2 = 0;
+			double uv1 = 0.5 + atan2(z, x) / (2 * PI);
+			double uv2 = 0.5 + asin(y) / PI;
 
 			mb.push_vertex({{x,y,z},{nx, ny, nz},{uv1,uv2}});
 		}
@@ -255,6 +269,54 @@ void Application::generateCubeFace(mesh_builder *mb, glm::mat3 transformMatrix){
 			mb->push_index(k1+1);
 		}
 	}
+}
+
+void Application::torusLatLong(){
+		mesh_builder mb;
+	
+	// Generate Vertex's
+	for (int lon = 0; lon < subdiv + 1; lon ++){
+		double phi = map(lon, 0, subdiv, 0, 2 * PI);
+		for (int lat =0; lat < subdiv + 1; lat ++){
+			double theta = map(lat, 0, subdiv, 0, 2 * PI);
+			// Calculate Positions
+			double x = (outerRadius + radius * cos(theta)) * cos(phi);
+			double z = (outerRadius + radius * cos(theta)) * sin(phi);
+			double y = radius * sin(theta);
+
+			// Calculate Normals
+			double nx = cos(theta) * cos(phi);
+			double nz = cos(theta) * sin(phi);
+			double ny = sin(theta);
+
+			// Calculate UV's
+			double uv1 = 0;
+			double uv2 = 0;
+
+			mb.push_vertex({{x,y,z},{nx, ny, nz},{uv1,uv2}});
+		}
+	}
+
+	// Generate Indicies
+	for (int lon = 0; lon < subdiv; lon ++){
+		for (int lat =0; lat < subdiv; lat++){
+			int k1 = lat * (subdiv + 1) + lon;
+			int k2 = k1  +  subdiv + 1;
+
+			// Triangle 1
+			mb.push_index(k1);
+			mb.push_index(k2);
+			mb.push_index(k1 + 1);
+
+			// Triangle 2
+			mb.push_index(k2);
+			mb.push_index(k2 + 1);
+			mb.push_index(k1 + 1);
+		}
+	}
+
+	m_model.meshs.clear();
+	m_model.meshs.push_back(mb.build());
 }
 
 double Application::map(double value, double inMin, double inMax, double outMin, double outMax) {

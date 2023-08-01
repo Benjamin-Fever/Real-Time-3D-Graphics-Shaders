@@ -18,9 +18,18 @@
 struct basic_model {
 	GLuint shader = 0;
 	std::vector<cgra::gl_mesh> meshs;
-	glm::vec3 color{0.7};
+	glm::vec3 color {0.95, 0.65, 0.55};
 	glm::mat4 modelTransform{1.0};
 	GLuint texture;
+
+	// Lighting Data
+	glm::vec3 lightPos {-10, 10, 7};
+	glm::vec3 lightColor {1};
+	float ambientStrength = 0.055f;
+	float diffuseStrength = 0.7f;
+	float specularStrength = 0.3f;
+	float roughness = 0.1f;
+	float refraction = 0.5f;
 
 	void draw(const glm::mat4 &view, const glm::mat4 proj);
 };

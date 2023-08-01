@@ -28,7 +28,14 @@ void basic_model::draw(const glm::mat4 &view, const glm::mat4 proj) {
 	glUseProgram(shader); // load shader and variables
 	glUniformMatrix4fv(glGetUniformLocation(shader, "uProjectionMatrix"), 1, false, value_ptr(proj));
 	glUniformMatrix4fv(glGetUniformLocation(shader, "uModelViewMatrix"), 1, false, value_ptr(modelview));
+	glUniform3fv(glGetUniformLocation(shader, "uLightPos"), 1, value_ptr(lightPos));
+	glUniform3fv(glGetUniformLocation(shader, "uLightColor"), 1, value_ptr(lightColor));
+	glUniform1f(glGetUniformLocation(shader, "uAmbientStrength"), ambientStrength);
+	glUniform1f(glGetUniformLocation(shader, "uDiffuseStrength"), diffuseStrength);
+	glUniform1f(glGetUniformLocation(shader, "uSpecularStrength"), specularStrength);
 	glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, value_ptr(color));
+	glUniform1f(glGetUniformLocation(shader, "uRoughness"), roughness);
+	glUniform1f(glGetUniformLocation(shader, "uRefraction"), refraction);
 	for (auto &mesh : meshs){
 		mesh.draw(); // draw
 	}
@@ -39,12 +46,11 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 	
 	shader_builder sb;
     sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
-	sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_frag.glsl"));
+	sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//frag.glsl"));
 	GLuint shader = sb.build();
 
 	m_model.shader = shader;
 	sphereLatlong();
-	m_model.color = vec3(0.4, 0.7, 0);
 }
 
 
@@ -109,15 +115,30 @@ void Application::renderGUI() {
 
 
 	ImGui::Text("Geometry Settings");
-	if (ImGui::Combo("Mode", &geometryMode, "Core\0Complection\0Challenge")){
+	int subdivMin = geometryMode == 0 ? 4 : 1;
+	if (subdiv < subdivMin) { 
+		subdiv = subdivMin; 
 		drawGeometry();
 	}
-	if (ImGui::SliderInt("subdiv Count", &subdiv, 1, 100)) {
+	if (ImGui::Combo("Mode", &geometryMode, "Core\0Complection\0Challenge"))
+		drawGeometry(); 
+	if (ImGui::SliderInt("subdiv Count", &subdiv, subdivMin, 100))
 		drawGeometry();
-	}
-	if (ImGui::SliderInt("Radius", &radius, 1, 50)) {
+	if (ImGui::SliderInt("Radius", &radius, 1, 50))
 		drawGeometry();
-	}
+
+	ImGui::Text("Lighting Settings");
+    ImGui::SliderFloat3("Light Color", value_ptr(m_model.lightColor), 0, 1, "%.2f");
+    ImGui::SliderFloat3("Light Position", value_ptr(m_model.lightPos), -100, 100, "%.2f");
+    ImGui::SliderFloat("Ambient Strength", &m_model.ambientStrength, 0, 1, "%.3f");
+    ImGui::SliderFloat("Diffuse Strength", &m_model.diffuseStrength, 0, 1, "%.3f");
+    ImGui::SliderFloat("Specular Strength", &m_model.specularStrength, 0, 1, "%.3f");
+
+	ImGui::Text("Material Settings");
+	ImGui::SliderFloat3("Model Color", value_ptr(m_model.color), 0, 1, "%.2f");
+	ImGui::SliderFloat("Roughness", &m_model.roughness, 0, 1, "%.3f");
+	ImGui::SliderFloat("Refraction", &m_model.refraction, 0, 100, "%.3f");
+    
 
 	// finish creating window
 	ImGui::End();

@@ -63,9 +63,8 @@ private:
 	int shaderMode = 0;
 	int radius = 5;
 	int outerRadius = 10;
-	std::string shaderFrag[4] = {"//res//shaders//color_frag.glsl", "//res//shaders//Core//frag.glsl", "//res//shaders//Completion//frag.glsl", "//res//shaders//color_frag.glsl"};
-	std::string shaderVert[4] = {"//res//shaders//color_vert.glsl", "//res//shaders//Core//vert.glsl", "//res//shaders//Completion//vert.glsl", "//res//shaders//color_vert.glsl"};
-
+	std::string shaderFrag[3] = {"//res//shaders//Core//frag.glsl", "//res//shaders//Completion//frag.glsl", "//res//shaders//color_frag.glsl"};
+	std::string shaderVert[3] = {"//res//shaders//Core//vert.glsl", "//res//shaders//Completion//vert.glsl", "//res//shaders//color_vert.glsl"};
 public:
 	// setup
 	Application(GLFWwindow *);

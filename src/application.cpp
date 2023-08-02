@@ -36,7 +36,7 @@ void basic_model::draw(const glm::mat4 &view, const glm::mat4 proj) {
 	glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, value_ptr(color));
 	glUniform1f(glGetUniformLocation(shader, "uRoughness"), roughness);
 	glUniform1f(glGetUniformLocation(shader, "uRefraction"), refraction);
-
+	glUniform1i(glGetUniformLocation(shader, "uTexture"), 0);
 	for (auto &mesh : meshs){
 		mesh.draw(); // draw
 	}
@@ -49,8 +49,10 @@ Application::Application(GLFWwindow *window) : m_window(window) {
     sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
 	sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_frag.glsl"));
 	GLuint shader = sb.build();
-
 	m_model.shader = shader;
+	GLuint texture = cgra::rgba_image(CGRA_SRCDIR + std::string("//res//textures/checkerboard.jpg")).uploadTexture();
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
 	sphereLatlong();
 }
 
@@ -116,14 +118,9 @@ void Application::renderGUI() {
 
 
 	ImGui::Text("Geometry Settings");
-	int subdivMin = geometryMode == 0 ? 4 : 1;
-	if (subdiv < subdivMin) { 
-		subdiv = subdivMin; 
-		drawGeometry();
-	}
 	if (ImGui::Combo("Geometry Mode", &geometryMode, "Core\0Complection\0Challenge"))
 		drawGeometry(); 
-	if (ImGui::SliderInt("subdiv Count", &subdiv, subdivMin, 100))
+	if (ImGui::SliderInt("subdiv Count", &subdiv, 1, 100))
 		drawGeometry();
 	if (ImGui::SliderInt("Radius", &radius, 1, 50))
 		drawGeometry();
@@ -132,7 +129,7 @@ void Application::renderGUI() {
 			drawGeometry();
 
 	ImGui::Text("Shader Settings");
-	if (ImGui::Combo("Shader Mode", &shaderMode, "Color\0Shader\0Texture\0Shader + Texture")){
+	if (ImGui::Combo("Shader Mode", &shaderMode, "Core\0Complection\0Challenge")){
 		shader_builder sb;
 		sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + shaderVert[shaderMode]);
 		sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + shaderFrag[shaderMode]);
@@ -191,8 +188,8 @@ void Application::sphereLatlong(){
 			double nz = z / radius;
 
 			// Calculate UV's
-			double uv1 = 0.5 + atan2(z, x) / (2 * PI);
-			double uv2 = 0.5 + asin(y) / PI;
+			double uv1 = theta / (2 * PI);
+        	double uv2 = phi / PI;
 
 			mb.push_vertex({{x,y,z},{nx, ny, nz},{uv1,uv2}});
 		}
@@ -250,6 +247,7 @@ void Application::generateCubeFace(mesh_builder *mb, glm::mat3 transformMatrix){
 			mv.pos = normalize(mv.pos);
 			mv.pos *= radius;
 			mv.norm = mv.pos;
+			mv.uv = vec2(x * jumpSize / radius, y * jumpSize / radius);
 			mb->push_vertex(mv);
 			
 		}
@@ -290,8 +288,8 @@ void Application::torusLatLong(){
 			double ny = sin(theta);
 
 			// Calculate UV's
-			double uv1 = 0;
-			double uv2 = 0;
+			double uv1 = theta / (2 * PI);
+			double uv2 = phi / (2 * PI);
 
 			mb.push_vertex({{x,y,z},{nx, ny, nz},{uv1,uv2}});
 		}
@@ -342,7 +340,6 @@ void Application::cursorPosCallback(double xpos, double ypos) {
 	// updated mouse position
 	m_mousePosition = vec2(xpos, ypos);
 }
-
 
 void Application::mouseButtonCallback(int button, int action, int mods) {
 	(void)mods; // currently un-used

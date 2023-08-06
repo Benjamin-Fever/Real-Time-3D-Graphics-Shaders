@@ -4,6 +4,7 @@
 uniform mat4 uProjectionMatrix;
 uniform mat4 uModelViewMatrix;
 
+// Light variables
 uniform vec3 uColor;
 uniform vec3 uLightColor;
 uniform vec3 uLightPos;
@@ -11,7 +12,13 @@ uniform float uAmbientStrength;
 uniform float uDiffuseStrength;
 uniform float uSpecularStrength;
 uniform float uRoughness;
-uniform float uRefraction;
+uniform vec3 uRefraction;
+
+// Texture variables
+uniform sampler2D uTexture;
+uniform sampler2D uNormalMap;
+uniform bool uUseNormalMap;
+uniform bool uUseTexture;
 
 vec3 norm;
 vec3 lightDir;
@@ -57,25 +64,28 @@ vec3 diffuse(){
 	float angleView = acos(cosThetaViewNorm);
 
 	float orenDiffuse = max(0.0, cosThetaLightNorm - A * B * max(0.0, sin(angleView) * tan(angleDiff)));
-
-	return uDiffuseStrength * uLightColor * orenDiffuse;
+	vec3 final = vec3(uDiffuseStrength * orenDiffuse);
+	return final;
 }
 
 vec3 specular(){
 	// Calculate Freshnel effect with Schlick's approximation
-	float F = uRefraction + (1.0 - uRefraction) * pow(1.0 - dotViewHalfDir, 5.0);
+	vec3 F = uRefraction + (1.0 - uRefraction) * pow(1.0 - dotViewHalfDir, 5.0);
 	// Calculate Geometric Attenuation with Cook-Torrance
 	float G1 = (2 * dotNormHalfDir * dotNormViewDir) / dotViewHalfDir;
 	float G2 = (2 * dotNormHalfDir * dotNormLightDir) / dotViewHalfDir;
 	float G = min(1.0, min(G1, G2));
-	// Calculate Distribution with blinn-phong model
-	float D = 1 / (3.14159265359 * roughness2) * pow(dotNormHalfDir, (2 / roughness2) - 2);
-	float specular = F * G * D / (4 * dotNormViewDir * dotNormLightDir);
-	return uSpecularStrength * uLightColor * specular;
+	// Calculate Distribution with GGX
+	float D = (roughness2 / (3.14159265359 * pow(dotNormHalfDir * dotNormHalfDir * (roughness2 - 1.0) + 1.0, 2.0)));
+	vec3 specular = F * G * D / (4 * dotNormViewDir * dotNormLightDir);
+	return uSpecularStrength * specular;
 }
 
 void main() {
 	norm = normalize(f_in.normal);
+	if (uUseNormalMap)
+		norm = normalize(texture(uNormalMap, f_in.textureCoord).xyz * 2.0f - 1.0f);
+
 	lightDir = normalize(uLightPos);
 	viewDir = normalize(-f_in.position);
 	halfwayDir = normalize(lightDir + viewDir);
@@ -87,8 +97,10 @@ void main() {
 
 	roughness2 = pow(uRoughness, 2);
 
-	vec3 result = ambient() + diffuse() + specular();
-
-	fb_color = vec4(result * uColor, 1.0);
+	vec3 color = uColor;
+	if (uUseTexture)
+		color *= texture(uTexture, f_in.textureCoord).rgb;
+	vec3 result = ambient() * color + diffuse() * color + specular();
+	fb_color = vec4(result , 1.0);
 }
 

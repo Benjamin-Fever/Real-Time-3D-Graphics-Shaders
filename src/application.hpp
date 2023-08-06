@@ -29,7 +29,10 @@ struct basic_model {
 	float diffuseStrength = 0.7f;
 	float specularStrength = 0.3f;
 	float roughness = 0.1f;
-	float refraction = 0.5f;
+	glm::vec3 refraction = {1,1,1};
+	
+	bool useNormalMap;
+	bool useTexture;
 
 	void draw(const glm::mat4 &view, const glm::mat4 proj);
 };
@@ -60,11 +63,14 @@ private:
 	basic_model m_model;
 	int subdiv = 20;
 	int geometryMode = 0;
-	int shaderMode = 0;
 	int radius = 5;
 	int outerRadius = 10;
-	std::string shaderFrag[3] = {"//res//shaders//Core//frag.glsl", "//res//shaders//Completion//frag.glsl", "//res//shaders//color_frag.glsl"};
-	std::string shaderVert[3] = {"//res//shaders//Core//vert.glsl", "//res//shaders//Completion//vert.glsl", "//res//shaders//color_vert.glsl"};
+
+	// shaders
+	int shaderMode = 0;
+	std::string shaderFrag[4] = {"//res//shaders//color_frag.glsl", "//res//shaders//Custom//bdrf_fragment.glsl", "//res//shaders//Custom//texture_fragment.glsl", "//res//shaders//Custom//bdrf_texture_fragment.glsl" };
+	std::string shaderVert[4] = {"//res//shaders//color_vert.glsl", "///res//shaders//color_vert.glsl", "//res//shaders//color_vert.glsl", "//res//shaders//color_vert.glsl"};
+
 public:
 	// setup
 	Application(GLFWwindow *);
@@ -84,10 +90,10 @@ public:
 	void keyCallback(int key, int scancode, int action, int mods);
 	void charCallback(unsigned int c);
 
-	// geometry
 	void drawGeometry();
-	void sphereLatlong();
-	void sphereFromCube();
+    void changeShader();
+    void sphereLatlong();
+    void sphereFromCube();
 	void generateCubeFace(cgra::mesh_builder *mb, glm::mat3 transformMatrix);
 	void torusLatLong();
 

@@ -35,8 +35,11 @@ void basic_model::draw(const glm::mat4 &view, const glm::mat4 proj) {
 	glUniform1f(glGetUniformLocation(shader, "uSpecularStrength"), specularStrength);
 	glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, value_ptr(color));
 	glUniform1f(glGetUniformLocation(shader, "uRoughness"), roughness);
-	glUniform1f(glGetUniformLocation(shader, "uRefraction"), refraction);
+	glUniform3fv(glGetUniformLocation(shader, "uRefraction"), 1, value_ptr(refraction));
 	glUniform1i(glGetUniformLocation(shader, "uTexture"), 0);
+	glUniform1i(glGetUniformLocation(shader, "uNormalMap"), 1);
+	glUniform1i(glGetUniformLocation(shader, "uUseNormalMap"), useNormalMap ? 1 : 0);
+	glUniform1i(glGetUniformLocation(shader, "uUseTexture"), useTexture ? 1 : 0);
 	for (auto &mesh : meshs){
 		mesh.draw(); // draw
 	}
@@ -46,13 +49,17 @@ void basic_model::draw(const glm::mat4 &view, const glm::mat4 proj) {
 Application::Application(GLFWwindow *window) : m_window(window) {
 	
 	shader_builder sb;
-    sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_vert.glsl"));
-	sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + std::string("//res//shaders//color_frag.glsl"));
+	sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + shaderVert[shaderMode]);
+	sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + shaderFrag[shaderMode]);
 	GLuint shader = sb.build();
 	m_model.shader = shader;
-	GLuint texture = cgra::rgba_image(CGRA_SRCDIR + std::string("//res//textures/checkerboard.jpg")).uploadTexture();
+
+	GLuint texture = cgra::rgba_image(CGRA_SRCDIR + std::string("//res//textures//Texture.png")).uploadTexture();
+	GLuint normalMap = cgra::rgba_image(CGRA_SRCDIR + std::string("//res//textures//NormalMap.png")).uploadTexture();
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, normalMap);
 	sphereLatlong();
 }
 
@@ -112,13 +119,100 @@ void Application::renderGUI() {
 	ImGui::Checkbox("Wireframe", &m_showWireframe);
 	ImGui::SameLine();
 	if (ImGui::Button("Screenshot")) rgba_image::screenshot(true);
+	ImGui::Separator();
+	ImGui::Text("Presets");
+	if (ImGui::Button("Preset 1")){
+		shaderMode = 0;
+		geometryMode = 0;
+		m_model.color = vec3(0.95, 0.65, 0.55);
+		radius = 5;
+		drawGeometry(); 
+		changeShader();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Preset 2")){
+		shaderMode = 0;
+		geometryMode = 1;
+		radius = 5;
+		m_model.color = vec3(0.95, 0.65, 0.55);
+		drawGeometry(); 
+		changeShader();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Preset 3")){
+		shaderMode = 0;
+		geometryMode = 2;
+		radius = 2;
+		outerRadius = 5;
+		m_model.color = vec3(0.95, 0.65, 0.55);
+		drawGeometry(); 
+		changeShader();
+	}
 
-	
+	if (ImGui::Button("Preset 4")){
+		shaderMode = 1;
+		geometryMode = 0;
+		m_model.color = vec3(0.95, 0.65, 0.55);
+		m_model.roughness = 0.045;
+		m_model.refraction = vec3(1, 1, 1);
+		m_model.lightColor = vec3(1, 1, 1);
+		m_model.lightPos = vec3(-10, 10, 7);
+		m_model.ambientStrength = 0.4;
+		m_model.diffuseStrength = 0.8;
+		m_model.specularStrength = 0.2;
+		drawGeometry(); 
+		changeShader();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Preset 5")){
+		shaderMode = 1;
+		geometryMode = 0;
+		m_model.color = vec3(0.95, 0.65, 0.55);
+		m_model.roughness = 0.2;
+		m_model.refraction = vec3(1, 1, 1);
+		m_model.lightColor = vec3(1, 1, 1);
+		m_model.lightPos = vec3(-10, 10, 7);
+		m_model.ambientStrength = 0.4;
+		m_model.diffuseStrength = 0.8;
+		m_model.specularStrength = 0.2;
+		drawGeometry(); 
+		changeShader();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Preset 6")){
+		shaderMode = 1;
+		geometryMode = 0;
+		m_model.color = vec3(0.95, 0.65, 0.55);
+		m_model.roughness = 0.5;
+		m_model.refraction = vec3(1, 1, 1);
+		m_model.lightColor = vec3(1, 1, 1);
+		m_model.lightPos = vec3(-10, 10, 7);
+		m_model.ambientStrength = 0.4;
+		m_model.diffuseStrength = 0.8;
+		m_model.specularStrength = 0.2;
+		drawGeometry(); 
+		changeShader();
+	}
+	if (ImGui::Button("Preset 7")){
+		shaderMode = 3;
+		geometryMode = 0;
+		m_model.color = vec3(1, 1, 1);
+		m_model.roughness = 0.045;
+		m_model.refraction = vec3(1, 1, 1);
+		m_model.lightColor = vec3(1, 1, 1);
+		m_model.lightPos = vec3(-10, 10, 7);
+		m_model.ambientStrength = 0.7;
+		m_model.diffuseStrength = 0.8;
+		m_model.specularStrength = 0.2;
+		m_model.useTexture = true;
+		m_model.useNormalMap = true;
+		drawGeometry(); 
+		changeShader();
+	}
 	ImGui::Separator();
 
-
 	ImGui::Text("Geometry Settings");
-	if (ImGui::Combo("Geometry Mode", &geometryMode, "Core\0Complection\0Challenge"))
+	if (ImGui::Combo("Geometry Mode", &geometryMode, "Core\0Completion\0Challenge"))
 		drawGeometry(); 
 	if (ImGui::SliderInt("subdiv Count", &subdiv, 1, 100))
 		drawGeometry();
@@ -127,27 +221,29 @@ void Application::renderGUI() {
 	if (geometryMode == 2)
 		if (ImGui::SliderInt("Outer Radius", &outerRadius, 1, 50))
 			drawGeometry();
-
+	ImGui::Separator();
 	ImGui::Text("Shader Settings");
-	if (ImGui::Combo("Shader Mode", &shaderMode, "Core\0Complection\0Challenge")){
-		shader_builder sb;
-		sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + shaderVert[shaderMode]);
-		sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + shaderFrag[shaderMode]);
-		GLuint shader = sb.build();
-
-		m_model.shader = shader;
+	if (ImGui::Combo("Shader Mode", &shaderMode, "Basic Color\0BDRF\0Texture\0BDRF Texture")){
+		changeShader();
 	}
 	ImGui::SliderFloat3("Model Color", value_ptr(m_model.color), 0, 1, "%.2f");
-	ImGui::SliderFloat("Roughness", &m_model.roughness, 0, 1, "%.3f");
-	ImGui::SliderFloat("Refraction", &m_model.refraction, 0, 100, "%.3f");
-
-
-	ImGui::Text("Lighting Settings");
-    ImGui::SliderFloat3("Light Color", value_ptr(m_model.lightColor), 0, 1, "%.2f");
-    ImGui::SliderFloat3("Light Position", value_ptr(m_model.lightPos), -100, 100, "%.2f");
-    ImGui::SliderFloat("Ambient Strength", &m_model.ambientStrength, 0, 1, "%.3f");
-    ImGui::SliderFloat("Diffuse Strength", &m_model.diffuseStrength, 0, 1, "%.3f");
-    ImGui::SliderFloat("Specular Strength", &m_model.specularStrength, 0, 1, "%.3f");
+	if (shaderMode == 1 || shaderMode == 3){
+		ImGui::SliderFloat("Roughness", &m_model.roughness, 0, 1, "%.3f");
+		ImGui::SliderFloat3("Refraction", value_ptr(m_model.refraction), 0, 10, "%.2f");
+	}
+	if (shaderMode == 2 || shaderMode == 3){
+		ImGui::Checkbox("Texture", &m_model.useTexture);
+		ImGui::Checkbox("Normal Map", &m_model.useNormalMap);
+	}
+	ImGui::Separator();
+	if (shaderMode == 1 || shaderMode == 3){
+		ImGui::Text("Lighting Settings");
+		ImGui::SliderFloat3("Light Color", value_ptr(m_model.lightColor), 0, 1, "%.2f");
+		ImGui::SliderFloat3("Light Position", value_ptr(m_model.lightPos), -100, 100, "%.2f");
+		ImGui::SliderFloat("Ambient Strength", &m_model.ambientStrength, 0, 1, "%.3f");
+		ImGui::SliderFloat("Diffuse Strength", &m_model.diffuseStrength, 0, 1, "%.3f");
+		ImGui::SliderFloat("Specular Strength", &m_model.specularStrength, 0, 1, "%.3f");
+	}
     
 
 	// finish creating window
@@ -169,6 +265,15 @@ void Application::drawGeometry(){
 	}
 }
 
+void Application::changeShader(){
+	shader_builder sb;
+	sb.set_shader(GL_VERTEX_SHADER, CGRA_SRCDIR + shaderVert[shaderMode]);
+	sb.set_shader(GL_FRAGMENT_SHADER, CGRA_SRCDIR + shaderFrag[shaderMode]);
+	GLuint shader = sb.build();
+
+	m_model.shader = shader;
+}
+
 void Application::sphereLatlong(){
 	mesh_builder mb;
 	
@@ -178,8 +283,8 @@ void Application::sphereLatlong(){
 		for (int lat =0; lat < subdiv + 1; lat ++){
 			double theta = map(lat, 0, subdiv, 0, 2 * PI);
 			// Calculate Positions
-			double x = radius * cos(theta) * sin(phi);
-			double z = radius * sin(theta) * sin(phi);
+			double z = radius * cos(theta) * sin(phi);
+			double x = radius * sin(theta) * sin(phi);
 			double y = radius * cos(phi);
 
 			// Calculate Normals
@@ -188,8 +293,8 @@ void Application::sphereLatlong(){
 			double nz = z / radius;
 
 			// Calculate UV's
-			double uv1 = theta / (2 * PI);
-        	double uv2 = phi / PI;
+			double uv1 = 1 - theta / (2 * PI);
+        	double uv2 = 1 - phi / PI;
 
 			mb.push_vertex({{x,y,z},{nx, ny, nz},{uv1,uv2}});
 		}
@@ -288,8 +393,8 @@ void Application::torusLatLong(){
 			double ny = sin(theta);
 
 			// Calculate UV's
-			double uv1 = theta / (2 * PI);
-			double uv2 = phi / (2 * PI);
+			double uv1 = 1 - theta / (2 * PI);
+			double uv2 = 1 - phi / (2 * PI);
 
 			mb.push_vertex({{x,y,z},{nx, ny, nz},{uv1,uv2}});
 		}
